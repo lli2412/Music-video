@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Music Visualizer</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="manifest" href="manifest.json">
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <canvas id="canvas"></canvas>
+  <input type="file" id="file" accept="audio/*">
+  <audio id="audio" controls></audio>
+  <div class="buttons">
+    <button onclick="mode='bars'">Спектр</button>
+    <button onclick="mode='wave'">Волна</button>
+    <button onclick="mode='circle'">Круг</button>
+    <button onclick="mode='waterfall'">Водопад</button>
+  </div>
+  <div class="skins">
+    <button onclick="skin='neon'">Неон</button>
+    <button onclick="skin='space'">Космос</button>
+    <button onclick="skin='minimal'">Минимализм</button>
+  </div>
+</body>
+</html>
