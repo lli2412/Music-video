@@ -3,25 +3,57 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>My Music Visualizer</title>
-  <link rel="stylesheet" href="style.css">
-  <link rel="manifest" href="manifest.json">
-  <script src="app.js" defer></script>
+  <title>Music Visualizer</title>
+  <style>
+    body {
+      margin: 0;
+      background: black;
+      color: white;
+      text-align: center;
+      font-family: sans-serif;
+    }
+    canvas {
+      width: 100%;
+      height: 50vh;
+      display: block;
+      background: #000;
+    }
+    #controls {
+      padding: 10px;
+    }
+    button {
+      margin: 5px;
+      padding: 10px;
+      background: #007bff;
+      border: none;
+      color: white;
+      border-radius: 5px;
+    }
+    button:active {
+      background: #0056b3;
+    }
+  </style>
 </head>
 <body>
+  <h2>🎵 Music Visualizer</h2>
   <canvas id="canvas"></canvas>
-  <input type="file" id="file" accept="audio/*">
-  <audio id="audio" controls></audio>
-  <div class="buttons">
-    <button onclick="mode='bars'">Спектр</button>
-    <button onclick="mode='wave'">Волна</button>
-    <button onclick="mode='circle'">Круг</button>
-    <button onclick="mode='waterfall'">Водопад</button>
+
+  <div id="controls">
+    <input type="file" id="fileInput" accept="audio/*"><br>
+    <button id="playBtn">▶️ Играть</button>
+    <button id="stopBtn">⏄1�7 Стоп</button>
   </div>
-  <div class="skins">
-    <button onclick="skin='neon'">Неон</button>
-    <button onclick="skin='space'">Космос</button>
-    <button onclick="skin='minimal'">Минимализм</button>
+
+  <div id="modes">
+    <button data-mode="spectrum">Спектр</button>
+    <button data-mode="wave">Волна</button>
+    <button data-mode="circle">Круг</button>
+    <button data-mode="cosmos">Космос</button>
+    <button data-mode="fractal">Неоновые фракталы</button>
   </div>
+
+  <audio id="audio" controls style="width:90%; margin-top:10px;"></audio>
+
+  <script src="app.js"></script>
 </body>
 </html>
