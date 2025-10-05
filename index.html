@@ -1,59 +1,174 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Music Visualizer</title>
+  <title>p5.js Music Visualizer</title>
   <style>
-    body {
-      margin: 0;
-      background: black;
+    body, html { margin:0; padding:0; overflow:hidden; background:black; }
+    canvas { display:block; }
+    #controls {
+      position: absolute;
+      top: 10px; left: 10px;
+      z-index: 10;
       color: white;
-      text-align: center;
       font-family: sans-serif;
     }
-    canvas {
-      width: 100%;
-      height: 50vh;
+    #controls input, #controls select {
+      margin: 5px 0;
       display: block;
-      background: #000;
-    }
-    #controls {
-      padding: 10px;
-    }
-    button {
-      margin: 5px;
-      padding: 10px;
-      background: #007bff;
-      border: none;
-      color: white;
-      border-radius: 5px;
-    }
-    button:active {
-      background: #0056b3;
     }
   </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/addons/p5.sound.min.js"></script>
 </head>
 <body>
-  <h2>🎵 Music Visualizer</h2>
-  <canvas id="canvas"></canvas>
+<div id="controls">
+  <input type="file" id="fileInput" accept="audio/*">
+  <label for="skinSelect">🎨 Skin:</label>
+  <select id="skinSelect">
+    <option value="neon">Neon</option>
+    <option value="ice">Ice</option>
+    <option value="retro">Retro</option>
+  </select>
+</div>
+<script>
+let song, fft, amp;
+let mode = 0;
+let modes = ["spectrum", "waveform", "fractal", "waterfall", "particles"];
+let peaks = [];
+let particles = [];
+let skin = "neon";
 
-  <div id="controls">
-    <input type="file" id="fileInput" accept="audio/*"><br>
-    <button id="playBtn">▶️ Играть</button>
-    <button id="stopBtn">⏄1�7 Стоп</button>
-  </div>
+function setup() {
+  createCanvas(windowWidth, windowHeight);
+  colorMode(HSB, 360, 255, 255);
+  fft = new p5.FFT(0.8, 1024);
+  amp = new p5.Amplitude();
 
-  <div id="modes">
-    <button data-mode="spectrum">Спектр</button>
-    <button data-mode="wave">Волна</button>
-    <button data-mode="circle">Круг</button>
-    <button data-mode="cosmos">Космос</button>
-    <button data-mode="fractal">Неоновые фракталы</button>
-  </div>
+  for (let i=0;i<64;i++) peaks[i]=0;
+  for (let i=0;i<300;i++) {
+    particles.push({ x: width/2, y: height/2, vx: random(-1,1), vy: random(-1,1), life: random(50,200) });
+  }
 
-  <audio id="audio" controls style="width:90%; margin-top:10px;"></audio>
+  canvas.addEventListener("click", () => {
+    mode = (mode + 1) % modes.length;
+  });
 
-  <script src="app.js"></script>
+  document.getElementById("fileInput").addEventListener("change", e => {
+    if (song && song.isPlaying()) song.stop();
+    let file = e.target.files[0];
+    if (file) song = loadSound(URL.createObjectURL(file), () => song.play());
+  });
+
+  document.getElementById("skinSelect").addEventListener("change", e => {
+    skin = e.target.value;
+  });
+}
+
+function draw() {
+  if (!song) {
+    background(0);
+    fill(255);
+    textAlign(CENTER, CENTER);
+    textSize(24);
+    text("Выбери трек сверху 🎵", width/2, height/2);
+    return;
+  }
+
+  if (modes[mode]!=="waterfall") background(0,40);
+  let spectrum = fft.analyze();
+  let waveform = fft.waveform();
+  let level = amp.getLevel();
+
+  if (modes[mode]==="spectrum") drawSpectrum(spectrum);
+  else if (modes[mode]==="waveform") drawWaveform(waveform);
+  else if (modes[mode]==="fractal") drawFractal(spectrum);
+  else if (modes[mode]==="waterfall") drawWaterfall(spectrum);
+  else if (modes[mode]==="particles") drawParticles(level);
+
+  fill(255);
+  textSize(16);
+  textAlign(LEFT,TOP);
+  text("Mode: "+modes[mode]+" | Skin: "+skin, 10,10);
+}
+
+// === Цветовые палитры ===
+function getColor(i, max, val=1) {
+  if (skin==="neon") return color((i/max*360 + millis()/30)%360, 255, 255*val);
+  if (skin==="ice")  return color(180 + (i%60), 80, 255*val);
+  if (skin==="retro") return color((i*7)%360, 150, 200*val);
+  return color(255);
+}
+
+// === Spectrum with peaks ===
+function drawSpectrum(spectrum) {
+  let bins = 64, step = floor(spectrum.length/bins);
+  for (let i=0;i<bins;i++) {
+    let val = spectrum[i*step]/255;
+    let h = val*height;
+    fill(getColor(i,bins,val));
+    rect(i*(width/bins), height-h, width/bins, h);
+    if (val > peaks[i]) peaks[i]=val;
+    else peaks[i]=max(0, peaks[i]-0.01);
+    fill(0,0,255);
+    rect(i*(width/bins), height-peaks[i]*height-4, width/bins, 4);
+  }
+}
+
+// === Waveform ===
+function drawWaveform(waveform) {
+  noFill(); stroke(getColor(0,1,1)); strokeWeight(2);
+  beginShape();
+  for (let i=0;i<waveform.length;i++) {
+    let x = map(i,0,waveform.length,0,width);
+    let y = map(waveform[i],-1,1,0,height);
+    vertex(x,y);
+  }
+  endShape();
+}
+
+// === Fractal spiral ===
+function drawFractal(spectrum) {
+  translate(width/2,height/2);
+  noStroke();
+  let avg = spectrum.reduce((a,b)=>a+b,0)/spectrum.length;
+  let pulse = 1+avg/200;
+  for (let i=0;i<spectrum.length;i++) {
+    let angle = i*0.1;
+    let radius = i*1.5*pulse;
+    let x = cos(angle)*radius, y = sin(angle)*radius;
+    fill(getColor(i,spectrum.length,avg/255));
+    ellipse(x,y,2+avg/100);
+  }
+}
+
+// === Waterfall ===
+function drawWaterfall(spectrum) {
+  copy(0,0,width,height,0,-2,width,height);
+  let bins = 128, step = floor(spectrum.length/bins);
+  for (let i=0;i<bins;i++) {
+    let val = spectrum[i*step]/255;
+    stroke(getColor(i,bins,val));
+    line(i*(width/bins), height, (i+1)*(width/bins), height);
+  }
+}
+
+// === Particles ===
+function drawParticles(level) {
+  noStroke();
+  for (let p of particles) {
+    p.x += p.vx*(1+level*10);
+    p.y += p.vy*(1+level*10);
+    p.life--;
+    if (p.life<=0 || p.x<0||p.x>width||p.y<0||p.y>height) {
+      p.x=width/2; p.y=height/2;
+      p.vx=random(-2,2); p.vy=random(-2,2);
+      p.life=random(100,200);
+    }
+    fill(getColor(p.x,width,level));
+    ellipse(p.x,p.y,4+level*20);
+  }
+}
+</script>
 </body>
 </html>
